@@ -269,13 +269,14 @@ const DEFAULT_CATS = [
   {id:'transporte',nome:'Transporte',tipo:'essencial',cor:'#3fa3b8',limite:0},
   {id:'saude',nome:'Saúde e educação',tipo:'essencial',cor:'#7a6cc8',limite:0},
   {id:'cuidados',nome:'Cuidados pessoais',tipo:'essencial',cor:'#9c5fb5',limite:0},
+  {id:'dizimo',nome:'Dízimo',tipo:'essencial',cor:'#a07a2c',limite:0},
   {id:'lazer',nome:'Lazer e restaurantes',tipo:'estilo',cor:'#c2571d',limite:0},
   {id:'compras',nome:'Compras',tipo:'estilo',cor:'#d9893e',limite:0},
   {id:'assinaturas',nome:'Assinaturas',tipo:'estilo',cor:'#b04a6f',limite:0},
   {id:'investimentos',nome:'Investimentos',tipo:'futuro',cor:'#0d8a63',limite:0},
   {id:'dividas',nome:'Dívidas',tipo:'futuro',cor:'#6a9a2e',limite:0},
 ];
-const DEFAULT_CFG = {migracoes:['cuidados-pessoais'],renda:0,aporte:0,reservaAtual:0,mesesReserva:6,perfil:'moderado',idade:0,categorias:DEFAULT_CATS};
+const DEFAULT_CFG = {migracoes:['cuidados-pessoais','dizimo'],renda:0,aporte:0,reservaAtual:0,mesesReserva:6,perfil:'moderado',idade:0,categorias:DEFAULT_CATS};
 
 function demoData(){
   const cfg = JSON.parse(JSON.stringify(DEFAULT_CFG));
@@ -334,22 +335,35 @@ function maybeDemo(){
 }
 
 // Novas categorias chegam também para quem já usa o app (uma vez só; se a pessoa apagar, não volta).
-function migrate(c){
+function migrate(c,g){
   if(!c || !Array.isArray(c.categorias)) return;
+  let changed=false;
   c.migracoes = c.migracoes || [];
   if(!c.migracoes.includes('cuidados-pessoais')){
     if(!c.categorias.some(x=>x.id==='cuidados')){
       const i=c.categorias.findIndex(x=>x.id==='saude');
       c.categorias.splice(i<0?c.categorias.length:i+1,0,{id:'cuidados',nome:'Cuidados pessoais',tipo:'essencial',cor:'#9c5fb5',limite:0});
     }
-    c.migracoes.push('cuidados-pessoais');
-    try{ const j=JSON.parse(localStorage.getItem(LS)||'null'); if(j){ j.cfg=c; localStorage.setItem(LS,JSON.stringify(j)); } }catch(e){}
+    c.migracoes.push('cuidados-pessoais'); changed=true;
+  }
+  if(!c.migracoes.includes('dizimo')){
+    if(!c.categorias.some(x=>x.id==='dizimo')){
+      const i=c.categorias.findIndex(x=>x.id==='cuidados');
+      c.categorias.splice(i<0?c.categorias.length:i+1,0,{id:'dizimo',nome:'Dízimo',tipo:'essencial',cor:'#a07a2c',limite:0});
+    }
+    // gastos de dízimo que estavam lançados em outra categoria passam para Dízimo
+    const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    (g||[]).forEach(x=>{ if(/dizimo/.test(norm(x.descricao))) x.categoria='dizimo'; });
+    c.migracoes.push('dizimo'); changed=true;
+  }
+  if(changed){
+    try{ const j=JSON.parse(localStorage.getItem(LS)||'null'); if(j){ j.cfg=c; j.gastos=g||j.gastos; localStorage.setItem(LS,JSON.stringify(j)); } }catch(e){}
   }
 }
 function startLocal(){
   if(mode==='local') return;
   mode='local'; const j=lsLoad();
-  if(j){ remoteCfg=j.cfg; remoteGastos=j.gastos||[]; migrate(remoteCfg); }
+  if(j){ remoteCfg=j.cfg; remoteGastos=j.gastos||[]; migrate(remoteCfg,remoteGastos); }
   cfgLoaded=gastosLoaded=true;
   setStatus('Seus dados ficam salvos neste aparelho.');
   maybeDemo();
