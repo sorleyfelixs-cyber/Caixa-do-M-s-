@@ -244,6 +244,7 @@ svg text{fill:var(--muted);font-family:var(--mono);font-size:11px}
         <div class="tip"><h3>Renda fixa no Brasil</h3><p>Tesouro Selic para a reserva; Tesouro IPCA+ e CDBs, LCIs e LCAs para prazos longos. CDB, LCI e LCA têm garantia do FGC até R$ 250 mil por CPF por instituição. LCI e LCA são isentas de IR para pessoa física, então compare pela taxa líquida.</p><cite>Tesouro Direto; Fundo Garantidor de Créditos</cite></div>
         <div class="tip"><h3>Consistência vale mais que acerto</h3><p>O que constrói patrimônio é aportar todo mês por muitos anos e não vender em pânico nas quedas. Gastar abaixo do que ganha, de forma discreta, é o traço comum de quem enriquece com salário.</p><cite>Morgan Housel, “A Psicologia Financeira”; Thomas Stanley, “O Milionário Mora ao Lado”</cite></div>
       </div>
+      <p class="muted" style="font-size:12px">Versão do app: 4 (categorias Cuidados pessoais e Dízimo)</p>
       <p class="disclaimer">Estas dicas resumem ideias de livros e regras gerais de educação financeira. Não são recomendação de investimento personalizada. Antes de investir, considere seus objetivos, prazos e tolerância a risco, e se precisar, consulte um profissional certificado (CFP, CEA ou CGA).</p>
     </section>
   </div>
@@ -554,7 +555,11 @@ $('restoreInput').onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
     cfg=j.cfg; gastos=j.gastos; demo=false; started=true; $('demoBanner').hidden=true; lsSave(); render(); setStatus('Backup restaurado: '+gastos.length+' gastos.'); }
   catch(_){ setStatus('Esse arquivo não é um backup do Caixa do Mês.'); }
   e.target.value=''; };
-if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  const hadSW=!!navigator.serviceWorker.controller; let reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(hadSW && !reloaded){ reloaded=true; location.reload(); } });
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{ r.update(); document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') r.update(); }); }).catch(()=>{});
+}
 startLocal();
 })();
 </script>
